@@ -6,7 +6,7 @@ $$
 S\left(\theta,\phi\right)=R\left(\theta\right)\ast F\left(\theta,\phi\right)
 $$
 
-LoRE-SD estimates the response function $F$ in every voxel. The response function is represented as a linear combination of Gaussian basis functions. Each Gaussian basis function $G$ is parameterised by an axial ($\lambda_\parallel$) and radial diffusivity ($\lambda_\perp$). By default, LoRE-SD uses a 10 by 10 grid of equally spaced $\lambda_\parallel$ and $\lambda_\perp$ values in the range $\[0,4\] \; \mu m^2/ms$. In line with physics, the radial diffusivity must be less than or equal to the axial diffusivity for each basis functions, effectively discarding half of the square grid.
+LoRE-SD estimates the response function $F$ in every voxel. The response function is represented as a linear combination of Gaussian basis functions. Each Gaussian basis function $G$ is parameterised by an axial ($\lambda_\parallel$) and radial diffusivity ($\lambda_\perp$). By default, LoRE-SD uses a 10 by 10 grid of equally spaced $\lambda_\parallel$ and $\lambda_\perp$ values in the range $\[0,4\]  \mu m^2/ms$. In line with physics, the radial diffusivity must be less than or equal to the axial diffusivity for each basis functions, effectively discarding half of the square grid.
 
 Every Gaussian basis function is associated with a weight $0 \le f_{\lambda_\parallel, \lambda_\perp} \le 1$. During optimisation then, these weights are optimised along with the ODF coefficients. A regularisation term promoting more isotropic response functions is employed to promote ODF sparsity and reduce erroneous ODF peaks.
 
@@ -30,7 +30,7 @@ This code makes use of MRtrix3 commands. Make sure you have a working installati
     * `<input_dwi>`: Inut DWI in MRtrix3 format (.mif) or NIfTI format (.nii.gz)
     * `<output_dir>`: Directory to write the output files to. Output files are `odf.mif`, `response.mif` and `gaussian_fractions.mif`
     * `--reg <regularisation_parameter>`: (optional) Default is $10^{-3}$
-    * `--grid_size <grid_size>`: (optional) Default is 10. This is the square grid size of the response function representation. Values are always linearly separated in $[0, 4] \; \mu m^2/ms$.
+    * `--grid_size <grid_size>`: (optional) Default is 10. This is the square grid size of the response function representation. Values are always linearly separated in $[0, 4] \mu m^2/ms$.
     * `--cores <number_of_cores>`: (optional) Default is 1. Number of cores to use for multiprocessing. As a reference, using 50 cores takes about 5 minutes to process a full DWI of the brain.
     * `--bvecs <bvecs> --bvals <bvals>`: Paths to bvecs and bvals file respectively if using NIfTI format.
 3. Analyze the ODF estimates and generated image contrasts. The basic image contrasts can be generated using:
