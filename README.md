@@ -10,7 +10,7 @@ LoRE-SD estimates the response function $F$ in every voxel. The response functio
 
 Every Gaussian basis function is associated with a weight $0 \le f_{\lambda_\parallel, \lambda_\perp} \le 1$. During optimisation then, these weights are optimised along with the ODF coefficients. A regularisation term promoting more isotropic response functions is employed to promote ODF sparsity and reduce erroneous ODF peaks.
 
-The response function representation is used to generate scalar image maps mimicking an intra-axonal, extra-axonal and free water compartment. This is achieved by creating weight matrices that accentuate ($\lambda_\parallel, \lambda\perp$) combinations of interest. E.g. an intra-axonal compartment can me mimicked by multiplying the response function representation in every voxel with a weight matrix with large weights for basis functions with small $\lambda_\perp$ and low weights for basis functions with large $\lambda_\perp$.
+The response function representation is used to generate scalar image maps mimicking an intra-axonal, extra-axonal and free water compartment. This is achieved by creating weight matrices that accentuate ($\lambda_\parallel, \lambda_\perp$) combinations of interest. E.g. an intra-axonal compartment can me mimicked by multiplying the response function representation in every voxel with a weight matrix with large weights for basis functions with small $\lambda_\perp$ and low weights for basis functions with large $\lambda_\perp$.
 
 
 In summary, LoRE-SD offers a framework for estimating data-driven, local response functions, enabling accurate glioma modelling and the development of new image contrasts.
