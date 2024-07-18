@@ -43,6 +43,9 @@ This code makes use of MRtrix3 commands. Make sure you have a working installati
 Given two .mif files with ODF coefficients, the following command lets you calculate the Angular Correlation Coefficient between the ODFs in every voxel. This functionality is useful when comparing ODF estimates of LoRE-SD to those of MSMT-CSD.
 `python src/angular_correlation.py <ODF1> <ODF2> <output_file>`
 
+## Notebooks for replications
+Voxel-level simulations and a hyperparameter validation are provided as Jupyter notebooks in 'Voxel Simulation.ipynb' and 'Hyperparameter Tuning.ipynb' respectively. If all the correct dependencies have been installed, these should run without a problem as they create the simulated data at runtime.
+
 
 ## Authors
 - Siebe Leysen
