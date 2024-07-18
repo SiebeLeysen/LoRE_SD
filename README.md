@@ -6,7 +6,7 @@ $$
 S\left(\theta,\phi\right)=R\left(\theta\right)\ast F\left(\theta,\phi\right)
 $$
 
-LoRE-SD estimates the response function $F$ in every voxel. The response function is represented as a linear combination of Gaussian basis functions. Each Gaussian basis function $G$ is parameterised by an axial ($\lambda_\parallel$) and radial diffusivity ($\lambda_\perp$). By default, LoRE-SD uses a 10 by 10 grid of equally spaced $\lambda_\parallel$ and $\lambda_\perp$ values in the range $[0,4] \; \mu m^2/ms$. In line with physics, the radial diffusivity must be less than or equal to the axial diffusivity for each basis functions, effectively discarding half of the square grid.
+LoRE-SD estimates the response function $F$ in every voxel. The response function is represented as a linear combination of Gaussian basis functions. Each Gaussian basis function $G$ is parameterised by an axial ($\lambda_\parallel$) and radial diffusivity ($\lambda_\perp$). By default, LoRE-SD uses a 10 by 10 grid of equally spaced $\lambda_\parallel$ and $\lambda_\perp$ values in the range $\[0,4\] \; \mu m^2/ms$. In line with physics, the radial diffusivity must be less than or equal to the axial diffusivity for each basis functions, effectively discarding half of the square grid.
 
 Every Gaussian basis function is associated with a weight $0 \le f_{\lambda_\parallel, \lambda_\perp} \le 1$. During optimisation then, these weights are optimised along with the ODF coefficients. A regularisation term promoting more isotropic response functions is employed to promote ODF sparsity and reduce erroneous ODF peaks.
 
