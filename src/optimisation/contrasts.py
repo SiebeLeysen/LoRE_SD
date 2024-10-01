@@ -27,7 +27,7 @@ def free_water_contrast(ad_range, rd_range):
     return out
 
 
-def intra_axonal_contrast(ad_range, rd_range):
+def intra_axonal_contrast(ad_range, rd_range, with_isotropic=True):
     """
     Calculate the intra-axonal contrast matrix.
 
@@ -43,7 +43,10 @@ def intra_axonal_contrast(ad_range, rd_range):
     """
     out = np.zeros((len(ad_range), len(rd_range)))
     for i in range(len(rd_range)):
-        out[i, :i + 1] = [np.exp(-5 * j) for j in 1000 * rd_range[:i + 1]]
+        if with_isotropic:
+            out[i, :i + 1] = [np.exp(-5 * j) for j in 1000 * rd_range[:i + 1]]
+        else:
+            out[i, :i] = [np.exp(-5 * j) for j in 1000 * rd_range[:i]]
     return out / np.max(out)
 
 def extra_axonal_contrast(ad_range, rd_range):
@@ -63,7 +66,7 @@ def extra_axonal_contrast(ad_range, rd_range):
     """
     return 1 - free_water_contrast(ad_range, rd_range) - intra_axonal_contrast(ad_range, rd_range)
 
-def get_contrast(fs, ad, rd, weighting_function):
+def get_contrast(fs, ad, rd, weighting_function, *args):
     """
     Calculate the weighted contrast based on a given weighting function.
 
@@ -81,7 +84,7 @@ def get_contrast(fs, ad, rd, weighting_function):
     - float: The sum of the weighted contrast over the specified axes.
     """
     # Calculate weights using the provided weighting function
-    weights = weighting_function(ad, rd)
+    weights = weighting_function(ad, rd, *args)
 
     # Return the sum of the product of weights and signal fractions over the last two dimensions
     return np.sum(weights * fs, axis=(-1, -2))

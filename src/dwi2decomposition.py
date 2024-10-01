@@ -60,10 +60,14 @@ def prepare_parameters(grid_size):
     rd_list = np.linspace(0, 4e-3, grid_size)
     return ad_list, rd_list
 
-def save_outputs(args, odf, responses, gaussian_fractions, vox):
+def save_outputs(args, odf, responses, gaussian_fractions, rec, rmse, vox):
     save_mrtrix(os.path.join(args.output_dir, 'odf.mif'), Image(odf, vox=vox, comments='ODF estimations by LoRE-SD'))
     save_mrtrix(os.path.join(args.output_dir, 'response.mif'), Image(responses, vox=vox, comments='Response function estimations by LoRE-SD'))
     save_mrtrix(os.path.join(args.output_dir, 'gaussian_fractions.mif'), Image(gaussian_fractions, vox=vox, comments='Gaussian fractions estimations by LoRE-SD'))
+    save_mrtrix(os.path.join(args.output_dir, 'reconstructed.mif'), Image(rec, vox=vox, comments='Reconstructed signal by LoRE-SD'))
+    save_mrtrix(os.path.join(args.output_dir, 'rmse.mif'), Image(rmse, vox=vox, comments='Root Mean Squared Error by LoRE-SD'))
+
+    save_mrtrix(os.path.join(args.output_dir, 'outer_rf.mif'), Image(optimise.expand_response(responses)[...,-1,:], vox=vox, comments='Outer response function by LoRE-SD'))
 
 def convert_to_mif(nii_path, bvecs_path, bvals_path):
     cmd_nii_to_img = f'mrconvert {nii_path} {nii_path.replace(".nii.gz", ".mif")} -fslgrad {bvecs_path} {bvals_path} -quiet'
@@ -89,19 +93,23 @@ def main():
     parser.add_argument('--cores', help='Number of cores to use', type=int, default=1)
     parser.add_argument('--bvecs', help='Path to the bvecs file', default=None)
     parser.add_argument('--bvals', help='Path to the bvals file', default=None)
+    parser.add_argument('--mask', help='Path to the mask file', default=None)
 
     args = parser.parse_args()
 
     input_args = handle_input(args)
     cores = adjust_cores(args.cores)
-    mask = get_mask(args.input, cores)
+    if args.mask is not None:
+        mask = load_mrtrix(args.mask).data > .5
+    else:
+        mask = get_mask(args.input, cores)
     ad_list, rd_list = prepare_parameters(args.grid_size)
 
     out = optimise.get_signal_decomposition(input_args.data, mask, input_args.grad, ad_list, rd_list, args.reg, cores=cores)
 
     vox = load_mrtrix(args.input).vox
 
-    save_outputs(args, out['odf'], out['response'], out['gaussian_fractions'], vox)
+    save_outputs(args, out['odf'], out['response'], out['gaussian_fractions'], out['reconstructed'], out['rmse']*mask, vox)
 
 if __name__ == '__main__':
     main()

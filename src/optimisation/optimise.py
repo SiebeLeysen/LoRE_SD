@@ -46,7 +46,9 @@ def get_signal_decomposition(dwi, mask, grad, Da, Dr, reg, lmax=8, cores=50):
     mask_len = np.count_nonzero(mask)  # Number of voxels within the mask
     obj_fun = obj_funs.data_fidelity_with_kernel_regularisation  # Objective function
     jac = obj_funs.jac_data_fidelity_with_kernel_regularisation  # Jacobian of the objective function
-    Q = get_transformation_matrix(len(grad), lmax)  # Transformation matrix
+    Q = get_transformation_matrix(600, lmax)  # Transformation matrix
+    
+    varia.save_vector('/LOCALDATA/sleyse4/Q.txt', Q)
 
     # Prepare arguments for multiprocessing
     # Arguments used for optimisation of voxel
@@ -77,9 +79,17 @@ def get_signal_decomposition(dwi, mask, grad, Da, Dr, reg, lmax=8, cores=50):
     ]
     odfs, responses, gaussian_fractions = [varia.create_output_array(data, mask, shape) for data, shape in zip((odfs, responses, fs), shapes)]
 
+    reconstructed = sh.calcdwi(sh.sphconv(responses, odfs), grad)
+    rmse = np.linalg.norm(reconstructed - dwi, axis=-1) / np.sqrt(dwi.shape[-1])
+
+    # odfs_high_res = odfs @ Q_high_res.T
+    ## Clip all negative values to zero
+    # odfs_high_res = np.clip(odfs_high_res, 0, None)
+    # odfs = odfs_high_res @ np.linalg.pinv(Q_high_res).T
+
     # Print execution time
     print(f'Execution time: {time.strftime("%Hh %Mm %Ss", time.gmtime(time.time() - start_time))}')
-    return {'odf': odfs, 'response': responses, 'gaussian_fractions': gaussian_fractions}
+    return {'odf': odfs, 'response': responses, 'gaussian_fractions': gaussian_fractions, 'reconstructed': reconstructed, 'rmse': rmse}
 
 
 def get_transformation_matrix(num_dirs, lmax):
@@ -138,6 +148,8 @@ def decompose_voxel(voxel, Da, Dr, grad, lmax, reg, Q, obj_fun, jac):
     bvals = np.unique(np.round(grad[..., -1], -2))
     gaussians = sh.zh2rh(get_gaussians(Da, Dr, bvals, lmax))
     S = np.squeeze(sh.calcsig(voxel, np.ones(voxel.shape[:-1], dtype=bool), grad, lmax))
+    if S[0,0] == 0:
+        return {'odf': np.zeros(sh.n4l(lmax)), 'response': np.zeros((len(bvals), lmax // 2 + 1)), 'gaussian_fractions': np.zeros((len(Da), len(Dr)))}
     scale_factor = 1000 / S[0, 0]
     S *= scale_factor
     gaussians *= S[0, 0]
@@ -146,14 +158,23 @@ def decompose_voxel(voxel, Da, Dr, grad, lmax, reg, Q, obj_fun, jac):
     init, bounds = get_init_and_bounds_from_csd(lmax, Da, Dr, gaussians, S, [constraints.non_negative_odf(Q)])
 
     # Optimization step simplified by directly passing parameters
-    res = minimize(obj_fun, init, args=(S, gaussians, reg), jac=jac, bounds=bounds,
-                   constraints=[constraints.non_negative_odf(Q), constraints.sum_of_fractions_equals_one(lmax)],
-                   options={'ftol': 1e-3})
+    # Initialize the wrapper for the objective function with relative error stopping criterion
+    wrapped_objective = ObjectiveWithStopping(obj_fun, S, gaussians, reg, tol=1e-3)
 
-    # Simplify output preparation
-    odf = res.x[:sh.n4l(lmax)]
-    fs = res.x[sh.n4l(lmax):]
+    # wrapped_objective = obj_fun
+
+    try:
+        res = minimize(wrapped_objective, init, jac=jac, bounds=bounds, args= (S, gaussians, reg),
+                    constraints=[constraints.non_negative_odf(Q), constraints.sum_of_fractions_equals_one(lmax)],
+                    method='SLSQP', options={'ftol':1e-10, 'maxiter': 100000})
+        odf = res.x[:sh.n4l(lmax)]
+        fs = res.x[sh.n4l(lmax):]
+    except StopIteration:
+        odf = wrapped_objective.last_x[:sh.n4l(lmax)]
+        fs = wrapped_objective.last_x[sh.n4l(lmax):]
+
     response = to_response(fs, gaussians) / scale_factor
+    # response = to_response(fs, gaussians)
 
     return {'odf': odf, 'response': response, 'gaussian_fractions': np.squeeze(fs.reshape((len(Da), len(Dr))))}
 
@@ -287,5 +308,37 @@ def expand_response(h):
     n2 = 0
     for l in range(0, lmax + 1, 2):
         n1, n2 = n2, (l + 1) * (l + 2) // 2
-        res[..., (n1 + n2) / 2] = h[..., l // 2]
+        res[..., (n1 + n2) // 2] = h[..., l // 2]
     return res
+
+# Wrapper function to include relative error stopping criterion
+class ObjectiveWithStopping:
+    def __init__(self, objective_func, S, gaussians, reg_param, tol=1e-3):
+        self.objective_func = objective_func
+        self.tol = tol
+        self.prev_fval = None
+        self.converged = False
+        self.last_x = None
+        self.last_fval = None
+        self.niter = 0
+        self.args = (S, gaussians, reg_param)  # Store additional arguments
+    
+    def __call__(self, x, *args):
+        # Call the objective function with additional parameters
+        current_fval = self.objective_func(x, *self.args)
+        self.last_x = x
+        self.last_fval = current_fval
+        self.niter += 1
+
+        if self.prev_fval is not None:
+            # Compute relative error
+            relative_error = abs(current_fval - self.prev_fval) / abs(self.prev_fval)
+            
+            # If relative error is below tolerance, stop optimization
+            if relative_error < self.tol:
+                # print(f"Stopping early (after {self.niter} iterations): relative error = {relative_error:.2e}")
+                self.converged = True
+                raise StopIteration  # Raise exception to halt optimization
+        
+        self.prev_fval = current_fval
+        return current_fval

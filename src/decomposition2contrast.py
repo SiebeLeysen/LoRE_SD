@@ -11,6 +11,7 @@ def main():
                                                  'given an image of gaussian fractions')
     parser.add_argument('input_fractions', type=str, help='The gaussian fractions')
     parser.add_argument('output_dir', type=str, help='The output directory')
+    parser.add_argument('--with_isotropic', default=1, type=int, help='Whether to include isotropic compartments in the intra-axonal contrast')
     args = parser.parse_args()
 
     # Your code here
@@ -24,7 +25,7 @@ def main():
     ad_range = np.linspace(0, 4e-3, num_ad)
     rd_range = np.linspace(0, 4e-3, num_rd)
 
-    intra_ax_contrast = contrasts.get_contrast(fractions, ad_range, rd_range, contrasts.intra_axonal_contrast)
+    intra_ax_contrast = contrasts.get_contrast(fractions, ad_range, rd_range, contrasts.intra_axonal_contrast, args.with_isotropic == 1)
     extra_ax_contrast = contrasts.get_contrast(fractions, ad_range, rd_range, contrasts.extra_axonal_contrast)
     free_water_contrast = contrasts.get_contrast(fractions, ad_range, rd_range, contrasts.free_water_contrast)
 
