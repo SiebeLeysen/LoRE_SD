@@ -154,7 +154,7 @@ def decompose_voxel(voxel, Da, Dr, grad, lmax, reg, Q, obj_fun, jac):
 
     # Optimization step simplified by directly passing parameters
     # Initialize the wrapper for the objective function with relative error stopping criterion
-    wrapped_objective = ObjectiveWithStopping(obj_fun, S, gaussians, reg, tol=1e-3)
+    wrapped_objective = ObjectiveWithStopping(obj_fun, S, gaussians, reg, tol=1e-4)
 
     try:
         res = minimize(wrapped_objective, init, jac=jac, bounds=bounds, args= (S, gaussians, reg),
