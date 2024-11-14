@@ -26,7 +26,7 @@ This code makes use of MRtrix3 commands. Make sure you have a working installati
     1.5 tqdm (progress bar)
     1.6 MRtrix3
 2. Run the LoRE-SD algorithm on your dMRI data:
-    `python src/dwi2decomposition.py <input_dwi> <output_dir> [--reg <regularisation_parameter>] [--grid_size <grid_size>] [--cores <number_of_cores>] [--bvecs <bvecs>] [--bvals <bvals>]`
+    `python dwi2decomposition.py <input_dwi> <output_dir> [--reg <regularisation_parameter>] [--grid_size <grid_size>] [--cores <number_of_cores>] [--bvecs <bvecs>] [--bvals <bvals>]`
     * `<input_dwi>`: Inut DWI in MRtrix3 format (.mif) or NIfTI format (.nii.gz)
     * `<output_dir>`: Directory to write the output files to. Output files are `odf.mif`, `response.mif` and `gaussian_fractions.mif`
     * `--reg <regularisation_parameter>`: (optional) Default is $10^{-3}$
@@ -34,7 +34,7 @@ This code makes use of MRtrix3 commands. Make sure you have a working installati
     * `--cores <number_of_cores>`: (optional) Default is 1. Number of cores to use for multiprocessing. As a reference, using 50 cores takes about 5 minutes to process a full DWI of the brain.
     * `--bvecs <bvecs> --bvals <bvals>`: Paths to bvecs and bvals file respectively if using NIfTI format.
 3. Analyze the ODF estimates and generated image contrasts. The basic image contrasts can be generated using:
-    `python src/decomposition2contrast.py <input_fractions> <output_dir>`
+    `python decomposition2contrast.py <input_fractions> <output_dir>`
     * `<input_fractions>`: Gaussian fractions estimated by LoRE-SD. Supplying `gaussian_fractions.mif` suffices.
     * `<output_dir>`: Directory to write the output files to. Output files are `intra_axonal_constrast.mif`, `extra_axonal_contrast.mif` and `free_water_contrast.mif`
 
