@@ -23,7 +23,7 @@ def data_fidelity_with_kernel_regularisation(d, S, gaussians, reg_param):
     convolved = np.einsum('...ab, ...b -> ...ab', kernel, odf)  # Convolve ODF with the kernel
     differences = (S - convolved)  # Calculate the difference between the actual signal and the convolved signal
     # Compute the data fidelity term with kernel regularization
-    return 1e-4*(np.sum(differences ** 2) + reg_param * np.sum(kernel[..., 1:, 1:] ** 2))
+    return 1e-5*(np.sum(differences ** 2) + reg_param * np.sum(kernel[..., 1:, 1:] ** 2))
 
 
 def jac_data_fidelity_with_kernel_regularisation(d, S, gaussians, reg_param):
@@ -50,7 +50,7 @@ def jac_data_fidelity_with_kernel_regularisation(d, S, gaussians, reg_param):
     grad[nlmax:] = -2 * np.einsum('...ab, ...ab -> ...', differences, gaussians * odf)
     grad[nlmax:] += reg_param * 2 * np.einsum('...ij, ...ij -> ...', kernel[..., 1:, 1:], gaussians[..., 1:, 1:])
 
-    return 1e-4 * grad
+    return 1e-5 * grad
 
 
 def csd_fit(odf, S, rf):

@@ -51,6 +51,59 @@ def calcsig(dwi, mask, grad, lmax=8):
     return res
 
 
+import numpy as np
+from matplotlib import pyplot as plt
+from numpy.polynomial.legendre import legfit
+from scipy.special import sph_harm
+
+
+def calcsig(dwi, mask, grad, lmax=8):
+    """
+    Multi-shell Diffusion Weighted Imaging (DWI) fit in the Spherical Harmonics (SH) basis.
+
+    Parameters:
+        dwi (numpy.ndarray): The input DWI data.
+        mask (numpy.ndarray): A binary brain mask.
+        grad (numpy.ndarray): The gradient directions and magnitudes (b-values) (gradient table).
+        lmax (int): The maximum order of the spherical harmonics.
+
+    Returns:
+        numpy.ndarray: The fitted signal in the SH basis.
+    """
+
+    # If DWI is a single voxel, expand to (1, #dirs)
+    if len(dwi.shape) == 1:
+        dwi_masked = np.expand_dims(dwi, axis=0)
+    else:
+        dwi_masked = dwi[mask, :]
+
+    # Round the gradient table to the nearest multiple of 10
+    grad_round = np.concatenate((grad[:, :3], np.expand_dims(np.round(grad[:, 3], -1), axis=1)), axis=1)
+    bvals = np.unique(grad_round[:, 3])
+
+    nlmax = n4l(lmax)
+
+    # Transformation matrix between polar coordinates and SH
+    Q = modshbasiscart(lmax, grad_round[:, 0], grad_round[:, 1], grad_round[:, 2])
+    n = [n4l(l) for l in range(0, lmax + 1, 2)]
+    S = np.zeros((dwi_masked.shape[0], len(bvals), nlmax))
+
+    # We fit every shell individually
+    for k, b in enumerate(bvals):
+        bidx = grad_round[:, 3] == b
+        nn = max([a for a in n if a < np.sum(bidx)]) if b > 10.0 else 1
+        pinvQ = np.linalg.pinv(Q[bidx, :nn])
+        S[..., k, :nn] = np.dot(dwi_masked[..., bidx], pinvQ.T)
+
+    res = np.zeros(dwi.shape[:-1] + (len(bvals), nlmax,))
+
+    if len(dwi.shape) == 1:
+        return S
+
+    res[mask] = S
+    return res
+
+
 def calcdwi(sh, grad):
     """
     This function performs a multi-shell Diffusion Weighted Imaging (DWI) fit in the Spherical Harmonics (SH) basis.
@@ -80,8 +133,8 @@ def calcdwi(sh, grad):
     # We fit every shell individually
     for k, b in enumerate(bvals):
         bidx = grad_round[:, 3] == b
-        # nn = max([a for a in n if a < np.sum(bidx)]) if b > 10.0 else 1
-        flat_S[..., bidx] = np.dot(flat_sh[..., k, :], Q[bidx, :].T)
+        nn = max([a for a in n if a < np.sum(bidx)]) if b > 10.0 else 1
+        flat_S[..., bidx] = np.dot(flat_sh[..., k, :nn], Q[bidx, :nn].T)
     return flat_S.reshape(sh.shape[:-2] + (grad_round.shape[0],))
 
 

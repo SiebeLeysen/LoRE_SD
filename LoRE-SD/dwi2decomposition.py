@@ -65,14 +65,13 @@ def prepare_parameters(grid_size):
     rd_list = np.linspace(0, 4e-3, grid_size)
     return ad_list, rd_list
 
-def save_outputs(args, odf, responses, gaussian_fractions, rec, rmse, vox, grad):
-    save_mrtrix(os.path.join(args.output_dir, 'odf.mif'), Image(odf, vox=vox, comments='ODF estimations by LoRE-SD'))
-    save_mrtrix(os.path.join(args.output_dir, 'response.mif'), Image(responses, vox=vox, comments='Response function estimations by LoRE-SD'))
-    save_mrtrix(os.path.join(args.output_dir, 'gaussian_fractions.mif'), Image(gaussian_fractions, vox=vox, comments='Gaussian fractions estimations by LoRE-SD'))
-    save_mrtrix(os.path.join(args.output_dir, 'reconstructed.mif'), Image(rec, grad=grad, vox=vox, comments='Reconstructed signal by LoRE-SD'))
-    save_mrtrix(os.path.join(args.output_dir, 'rmse.mif'), Image(rmse, vox=vox, comments='Root Mean Squared Error by LoRE-SD'))
+def save_outputs(args, data_dict, vox, grad):
+    for file_name, data in data_dict.items():
+        if file_name == 'reconstructed.mif':
+            save_mrtrix(os.path.join(args.output_dir, file_name), Image(data, grad=grad, vox=vox, comments=f'{file_name.split(".")[0].replace("_", " ").title()} by LoRE-SD'))
+        else:
+            save_mrtrix(os.path.join(args.output_dir, file_name), Image(data, vox=vox, comments=f'{file_name.split(".")[0].replace("_", " ").title()} by LoRE-SD'))
 
-    save_mrtrix(os.path.join(args.output_dir, 'outer_rf.mif'), Image(optimise.expand_response(responses)[...,-1,:], vox=vox, comments='Outer response function by LoRE-SD'))
 
 def convert_to_mif(nii_path, bvecs_path, bvals_path):
     cmd_nii_to_img = f'mrconvert {nii_path} {nii_path.replace(".nii.gz", ".mif")} -fslgrad {bvecs_path} {bvals_path} -quiet'
@@ -100,6 +99,8 @@ def main():
     parser.add_argument('--bvals', help='Path to the bvals file', default=None)
     parser.add_argument('--mask', help='Path to the mask file', default=None)
     parser.add_argument('--high_res_data', help='Path to the high resolution data', default=None)
+    parser.add_argument('--eval_matrix', help='Path to the evaluation matrix', default=None)
+    parser.add_argument('--slice', help='Slice number to process', type=int, default=None)
 
     args = parser.parse_args()
 
@@ -109,20 +110,41 @@ def main():
         mask = load_mrtrix(args.mask).data > .5
     else:
         mask = get_mask(args.input, cores)
+    
     ad_list, rd_list = prepare_parameters(args.grid_size)
 
-    out = optimise.get_signal_decomposition(input_args.data, mask, input_args.grad, ad_list, rd_list, args.reg, cores=cores)
+    if args.eval_matrix is not None:
+        # load the data in np format
+        Q = np.load(args.eval_matrix)
+    else:
+        Q = optimise.get_transformation_matrix(600, 8)
+        # save the data
+        np.save(os.path.join(args.output_dir, 'eval_matrix.npy'), Q)
+
+    dwi = input_args.data
+    if args.slice is not None:
+        dwi = dwi[:,:,args.slice:args.slice+1]
+        mask = mask[:,:,args.slice:args.slice+1]
+
+    grad = input_args.grad
+    grad[:, -1] = np.round(grad[:, -1], -2)
+
+    out = optimise.get_signal_decomposition(dwi, mask, grad, ad_list, rd_list, args.reg, Q=Q, cores=cores)
 
     vox = load_mrtrix(args.input).vox
 
-    save_outputs(args, out['odf'], out['response'], out['gaussian_fractions'], out['reconstructed'], out['rmse']*mask, vox, input_args.grad)
+    save_dict = {
+        'odf.mif': out['odf'],
+        'response.mif': out['response'],
+        'gaussian_fractions.mif': out['gaussian_fractions'],
+        'reconstructed.mif': out['reconstructed'],
+        'rmse.mif': out['rmse'],
+        'init_odf.mif': out['init_odf'],
+        'init_fs.mif': out['init_fs'],
+    }
 
-    if args.high_res_data is not None:
-        high_res_data = load_mrtrix(args.high_res_data)
-        recon_hr = sh.calcdwi(sh.sphconv(out['response'], out['odf']), high_res_data.grad)
-        rmse_hr = np.linalg.norm(high_res_data.data - recon_hr, axis=-1) / np.sqrt(high_res_data.data.shape[-1])
-        save_mrtrix(os.path.join(args.output_dir, 'reconstructed_hr.mif'), Image(recon_hr, vox=high_res_data.vox, grad=high_res_data.grad, comments='Reconstructed signal by LoRE-SD'))
-        save_mrtrix(os.path.join(args.output_dir, 'rmse_hr.mif'), Image(rmse_hr, vox=high_res_data.vox, comments='Root Mean Squared Error by LoRE-SD'))
+    save_outputs(args, save_dict, vox, grad)
+
 
 if __name__ == '__main__':
     main()
