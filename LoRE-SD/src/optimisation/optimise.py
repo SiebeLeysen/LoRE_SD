@@ -14,7 +14,7 @@ from utils import io_utils, math_utils
 import subprocess
 import tqdm
 
-def get_signal_decomposition(dwi, mask, grad, Da, Dr, reg, lmax=8, cores=50):
+def get_signal_decomposition(dwi, mask, grad, Da, Dr, reg, Q=None, lmax=8, cores=50):
     """
     Perform blind deconvolution on diffusion-weighted imaging (DWI) data.
 
@@ -46,9 +46,9 @@ def get_signal_decomposition(dwi, mask, grad, Da, Dr, reg, lmax=8, cores=50):
     mask_len = np.count_nonzero(mask)  # Number of voxels within the mask
     obj_fun = objective_functions.data_fidelity_with_kernel_regularisation  # Objective function
     jac = objective_functions.jac_data_fidelity_with_kernel_regularisation  # Jacobian of the objective function
-    Q = get_transformation_matrix(600, lmax)  # Transformation matrix
     
-    io_utils.save_vector('/LOCALDATA/sleyse4/Q.txt', Q)
+    if Q is None:
+        Q = get_transformation_matrix(600, lmax)  # Transformation matrix
 
     # Prepare arguments for multiprocessing
     # Arguments used for optimisation of voxel
@@ -66,25 +66,32 @@ def get_signal_decomposition(dwi, mask, grad, Da, Dr, reg, lmax=8, cores=50):
     pool.join()
 
     # Initialize arrays for ODFs, responses, and fiber fractions
-    odfs, responses, fs = map(np.zeros,
-                              [(mask_len, sh.n4l(lmax)), (mask_len, M, lmax // 2 + 1), (mask_len, len(Da), len(Dr))])
+    odfs, responses, fs, init_odfs, init_fs = map(np.zeros,
+                              [(mask_len, sh.n4l(lmax)), (mask_len, M, lmax // 2 + 1), (mask_len, len(Da), len(Dr)),
+                               (mask_len, sh.n4l(lmax)), (mask_len, len(Da), len(Dr))])
     for i, result in enumerate(results):
         odfs[i], responses[i], fs[i] = result['odf'], result['response'], result['gaussian_fractions']
+        init_odfs[i], init_fs[i] = result['init_odf'], result['init_fs']
 
     # Simplified version of creating output arrays with the correct shape
     shapes = [
         mask.shape + (sh.n4l(lmax),),
         mask.shape + (M, lmax // 2 + 1),
+        mask.shape + (len(Da), len(Dr)),
+        mask.shape + (sh.n4l(lmax),),
         mask.shape + (len(Da), len(Dr))
     ]
-    odfs, responses, gaussian_fractions = [math_utils.create_output_array(data, mask, shape) for data, shape in zip((odfs, responses, fs), shapes)]
+
+    odfs, responses, gaussian_fractions, init_odfs, init_fs = [math_utils.create_output_array(data, mask, shape) for data, shape in zip((odfs, responses, fs, init_odfs, init_fs), shapes)]
 
     reconstructed = sh.calcdwi(sh.sphconv(responses, odfs), grad)
     rmse = np.linalg.norm(reconstructed - dwi, axis=-1) / np.sqrt(dwi.shape[-1])
+    rmse *= mask
 
     # Print execution time
     print(f'Execution time: {time.strftime("%Hh %Mm %Ss", time.gmtime(time.time() - start_time))}')
-    return {'odf': odfs, 'response': responses, 'gaussian_fractions': gaussian_fractions, 'reconstructed': reconstructed, 'rmse': rmse}
+    return {'odf': odfs, 'response': responses, 'gaussian_fractions': gaussian_fractions, 
+            'reconstructed': reconstructed, 'rmse': rmse, 'init_odf': init_odfs, 'init_fs': init_fs}
 
 
 def get_transformation_matrix(num_dirs, lmax):
@@ -106,7 +113,7 @@ def get_transformation_matrix(num_dirs, lmax):
     This function relies on an external command-line tool `dirgen` to generate directions, which are saved to and then read from 'dirs.txt'.
     The file 'dirs.txt' is removed after its contents are loaded.
     """
-    subprocess.run(['dirgen', str(num_dirs), 'tmp_dirs.txt'])  # Generate directions and save to 'dirs.txt'
+    subprocess.run(['dirgen', str(num_dirs), os.path.join(os.getcwd(), 'tmp_dirs.txt')])  # Generate directions and save to 'dirs.txt'
     dirs = io_utils.load_vector(os.path.join(os.getcwd(), 'tmp_dirs.txt'))  # Load directions from 'dirs.txt'
     subprocess.run(['rm', 'tmp_dirs.txt'])  # Remove 'dirs.txt' after loading
 
@@ -152,23 +159,16 @@ def decompose_voxel(voxel, Da, Dr, grad, lmax, reg, Q, obj_fun, jac):
     # Simplify initial guess and bounds preparation
     init, bounds = get_init_and_bounds_from_csd(lmax, Da, Dr, gaussians, S, [constraints.non_negative_odf(Q)])
 
-    # Optimization step simplified by directly passing parameters
-    # Initialize the wrapper for the objective function with relative error stopping criterion
-    wrapped_objective = ObjectiveWithStopping(obj_fun, S, gaussians, reg, tol=1e-4)
-
-    try:
-        res = minimize(wrapped_objective, init, jac=jac, bounds=bounds, args= (S, gaussians, reg),
+    res = minimize(obj_fun, init, jac=jac, bounds=bounds, args= (S, gaussians, reg),
                     constraints=[constraints.non_negative_odf(Q), constraints.sum_of_fractions_equals_one(lmax)],
-                    method='SLSQP', options={'ftol':1e-10, 'maxiter': 100000})
-        odf = res.x[:sh.n4l(lmax)]
-        fs = res.x[sh.n4l(lmax):]
-    except StopIteration:
-        odf = wrapped_objective.last_x[:sh.n4l(lmax)]
-        fs = wrapped_objective.last_x[sh.n4l(lmax):]
+                    method='SLSQP', options={'ftol':1e-4, 'maxiter': 100000})
+    odf = res.x[:sh.n4l(lmax)]
+    fs = res.x[sh.n4l(lmax):]
 
     response = to_response(fs, gaussians) / scale_factor
 
-    return {'odf': odf, 'response': response, 'gaussian_fractions': np.squeeze(fs.reshape((len(Da), len(Dr))))}
+    return {'odf': odf, 'response': response, 'gaussian_fractions': np.squeeze(fs.reshape((len(Da), len(Dr)))),
+            'init_odf': init[:sh.n4l(lmax)], 'init_fs': init[sh.n4l(lmax):].reshape((len(Da), len(Dr)))}
 
 
 def calculate_normalised_l2_weights(S, gaussians, fs_mask):
@@ -188,7 +188,8 @@ def calculate_normalised_l2_weights(S, gaussians, fs_mask):
     """
     scale_factor = S[0, 0] / gaussians[0, 0, 0]  # Calculate scale factor based on the first element of S and gaussians
     l2_dists = np.linalg.norm(S[..., 0] - scale_factor * gaussians[..., 0], ord=2, axis=-1)  # Compute L2 norm of the difference
-    weights = np.exp(-1e-3 * l2_dists)  # Calculate weights using exponential decay based on L2 distances
+    weights = np.exp(-1e-3 * l2_dists)  # CalculIDate weights using exponential decay based on L2 distances
+    weights = np.ones_like(l2_dists)
     weights[~fs_mask] = 0  # Set weights to 0 for fractions not included in fs_mask
     return weights / weights.sum()  # Normalize weights to sum up to 1 and return
 
