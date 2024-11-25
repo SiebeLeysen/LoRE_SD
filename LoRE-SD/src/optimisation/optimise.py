@@ -47,12 +47,8 @@ def get_signal_decomposition(dwi, mask, grad, Da, Dr, reg, Q=None, lmax=8, cores
     obj_fun = objective_functions.data_fidelity_with_kernel_regularisation  # Objective function
     jac = objective_functions.jac_data_fidelity_with_kernel_regularisation  # Jacobian of the objective function
     
-    # jac = None
-    
     if Q is None:
         Q = get_transformation_matrix(600, lmax)  # Transformation matrix
-    
-    io_utils.save_vector('/LOCALDATA/sleyse4/Q.txt', Q)
 
     # Prepare arguments for multiprocessing
     # Arguments used for optimisation of voxel
