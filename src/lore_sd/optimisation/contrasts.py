@@ -60,7 +60,7 @@ def intra_axonal_contrast(ad_range, rd_range, with_isotropic=True, rate=10):
     dec_matrix = to_decay_matrix(ad_range, rd_range, exponential_decay_function, axis='radial', with_isotropic=with_isotropic, rate=rate)
     return dec_matrix
 
-def fa_map(ad, rd):
+def rfa_map(ad, rd):
 
     ad_matrix = np.repeat(ad[..., None], len(rd), axis=-1)
     rd_matrix = np.repeat(rd[None, ...], len(ad), axis=0)
@@ -91,18 +91,6 @@ def extra_axonal_contrast(ad_range, rd_range, with_isotropic=True, rate=10):
     out = 1 - free_water_contrast(ad_range, rd_range) - intra_axonal_contrast(ad_range, rd_range, with_isotropic=with_isotropic, rate=rate)
     out[ad_range[:, None] < rd_range[None, :]] = 0
     return out
-
-def fa_estimate_contrast(ad_range, rd_range):
-    ad_matrix = np.repeat(ad_range[..., None], len(rd_range), axis=-1)
-    rd_matrix = np.repeat(rd_range[None, ...], len(ad_range), axis=0)
-
-    mask = ad_matrix >= rd_matrix
-    ad_matrix *= mask
-    rd_matrix *= mask
-
-    lambda_mean = (ad_matrix + 2*rd_matrix) / 3
-    return np.nan_to_num(np.sqrt(3/2) * np.sqrt((ad_matrix - lambda_mean)**2 + (rd_matrix - lambda_mean)**2 + (rd_matrix - lambda_mean)**2) / np.sqrt(ad_matrix**2 + rd_matrix**2 + rd_matrix**2))
-
 
 def get_contrast(fs, ad, rd, weighting_function, *args):
     """
