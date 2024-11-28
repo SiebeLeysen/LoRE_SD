@@ -15,9 +15,9 @@ setup(
     ],
     entry_points={
         'console_scripts': [
-            'dwi2decomposition=lore_sd.dwi2decomposition:main',
-            'angular_correlation=lore_sd.angular_correlation:main',
-            'decomposition2contrast=lore_sd.decomposition2contrast:main',
+            'lore_dwi2decomposition=lore_sd.dwi2decomposition:main',
+            'lore_angular_correlation=lore_sd.angular_correlation:main',
+            'lore_decomposition2contrast=lore_sd.decomposition2contrast:main',
         ],
     },
     author='Siebe Leysen',
