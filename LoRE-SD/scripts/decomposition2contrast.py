@@ -41,17 +41,11 @@ def main():
     normed_anisotropy = np.nan_to_num(np.linalg.norm(rf[..., -1:,1:]/rf[...,-1:,:1], axis=(-1, -2)), nan=0, posinf=0, neginf=0)
     normed_anisotropy /= np.max(normed_anisotropy)
 
-    # matrix = np.load('/LOCALDATA/sleyse4/contrast.npy')
-    # new_contrast = np.sum(matrix * fractions, axis=(-1,-2))
-
     fa = np.sum(contrasts.fa_map(ad_range, rd_range) * fractions, axis=(-1,-2))
 
     save_mrtrix(os.path.join(args.output_dir, 'intra_axonal_contrast.mif'), Image(intra_ax_contrast, vox=vox, comments=['Intra-axonal contrast']))
     save_mrtrix(os.path.join(args.output_dir, 'extra_axonal_contrast.mif'), Image(extra_ax_contrast, vox=vox, comments=['Extra-axonal contrast']))
     save_mrtrix(os.path.join(args.output_dir, 'free_water_contrast.mif'), Image(free_water_contrast, vox=vox, comments=['Free water contrast']))
-    save_mrtrix(os.path.join(args.output_dir, 'anisotropy.mif'), Image(rf_anisotropy, vox=vox, comments=['Response function anisotropy']))
-    save_mrtrix(os.path.join(args.output_dir, 'normed_anisotropy.mif'), Image(normed_anisotropy, vox=vox, comments=['Response function anisotropy']))
-    # save_mrtrix(os.path.join(args.output_dir, 'new_contrast.mif'), Image(new_contrast, vox=vox, comments=['New contrast']))
     save_mrtrix(os.path.join(args.output_dir, 'fa.mif'), Image(fa, vox=vox, comments=['FA']))
 if __name__ == '__main__':
     main()

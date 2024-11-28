@@ -129,6 +129,9 @@ def main():
     grad = input_args.grad
     grad[:, -1] = np.round(grad[:, -1], -2)
 
+    print(f'Regularisation: {args.reg}')
+    print(f'Grid size: {len(ad_list)} x {len(rd_list)}')
+
     out = optimise.get_signal_decomposition(dwi, mask, grad, ad_list, rd_list, args.reg, Q=Q, cores=cores)
 
     vox = load_mrtrix(args.input).vox
