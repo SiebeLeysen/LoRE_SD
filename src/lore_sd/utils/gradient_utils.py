@@ -3,7 +3,7 @@ import os
 import subprocess
 from .io_utils import load_vector
 
-def pretty_print_gradient_table(grad):
+def pretty_print_gradient_table(grad, max_length=None):
     """
     Print the gradient table as a list of b-values and number of directions for each b-value.
     :param grad: Gradient table
@@ -12,12 +12,20 @@ def pretty_print_gradient_table(grad):
     b_values = grad[:, -1]
     unique_b_values, counts = np.unique(np.round(b_values, -2), return_counts=True)
     b_value_counts = dict(zip(unique_b_values, counts))
-
-    print('b-value   |   count   ')
-    print('----------------------')
+    
+    if max_length is None:
+        print('# b-value   |   count   ')
+        print('# ----------------------')
+    else:
+        print('# b-value   |   count   '.ljust(max_length) + "#")
+        print('#' + '-'*(max_length-1) + '#')
 
     for b in unique_b_values:
-        print(f"{int(b):5d}     |   {b_value_counts[b]}")
+        if max_length is None:
+            print(f"# {int(b):5d}     |   {b_value_counts[b]}".ljust(max_length) + "#")
+        else:
+            print(f"# {int(b):5d}     |   {b_value_counts[b]}".ljust(max_length) + "#")
+
 
 def create_gradient_table(bvals, dirs_per_shell):
     """

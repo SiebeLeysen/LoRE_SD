@@ -129,7 +129,10 @@ def main():
     grad = input_args.grad
     grad[:, -1] = np.round(grad[:, -1], -2)
 
+    optimise.print_summary(dwi, grad, args.reg, args.grid_size, cores)
+
     out = optimise.get_signal_decomposition(dwi, mask, grad, ad_list, rd_list, args.reg, Q=Q, cores=cores)
+
 
     vox = load_mrtrix(args.input).vox
 

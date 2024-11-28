@@ -9,7 +9,7 @@ import time
 from lore_sd.utils import SphericalHarmonics as sh
 from lore_sd.optimisation import objective_functions
 from lore_sd.optimisation import constraints
-from lore_sd.utils import io_utils, math_utils
+from lore_sd.utils import io_utils, math_utils, gradient_utils
 
 import subprocess
 import tqdm
@@ -285,34 +285,26 @@ def expand_response(h):
         res[..., (n1 + n2) // 2] = h[..., l // 2]
     return res
 
-# Wrapper function to include relative error stopping criterion
-class ObjectiveWithStopping:
-    def __init__(self, objective_func, S, gaussians, reg_param, tol=1e-3):
-        self.objective_func = objective_func
-        self.tol = tol
-        self.prev_fval = None
-        self.converged = False
-        self.last_x = None
-        self.last_fval = None
-        self.niter = 0
-        self.args = (S, gaussians, reg_param)  # Store additional arguments
-    
-    def __call__(self, x, *args):
-        # Call the objective function with additional parameters
-        current_fval = self.objective_func(x, *self.args)
-        self.last_x = x
-        self.last_fval = current_fval
-        self.niter += 1
+def print_summary(dwi, grad, reg, grid_size, cores):
+    """
+    Pretty prints the summary of the input parameters.
 
-        if self.prev_fval is not None:
-            # Compute relative error
-            relative_error = abs(current_fval - self.prev_fval) / abs(self.prev_fval)
-            
-            # If relative error is below tolerance, stop optimization
-            if relative_error < self.tol:
-                # print(f"Stopping early (after {self.niter} iterations): relative error = {relative_error:.2e}")
-                self.converged = True
-                raise StopIteration  # Raise exception to halt optimization
-        
-        self.prev_fval = current_fval
-        return current_fval
+    Parameters:
+    - dwi (numpy.ndarray): The DWI data as a 4D array.
+    - grad (numpy.ndarray): The gradient table including b-values and directions.
+    - reg (float): Regularisation parameter used in the optimization.
+    - grid_size (tuple): The grid size for the optimization.
+    - lmax (int): Maximum spherical harmonics order.
+    - cores (int): Number of cores to use for multiprocessing.
+    """
+    max_length = 50  # Adjust this value as needed to ensure proper alignment
+    print("#"*(max_length+1))
+    print("# Summary:".ljust(max_length) + "#")
+    print('#' + '-'*(max_length-1) + '#')
+    print(f"# Size of DWI input: {dwi.shape}".ljust(max_length) + "#")
+    print(f"# Regularisation parameter: {reg:.1e}".ljust(max_length) + "#")
+    print(f"# Gaussian grid size: {grid_size} x {grid_size}".ljust(max_length) + "#")
+    print(f"# Number of cores: {cores}".ljust(max_length) + "#")
+    gradient_utils.pretty_print_gradient_table(grad, max_length)
+    print("#"*(max_length+1))
+    
