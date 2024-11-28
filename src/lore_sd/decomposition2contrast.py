@@ -1,10 +1,6 @@
 import argparse
 import numpy as np
 import os
-import sys
-
-# sys.path.append('/DIRECTORY_TO_REPO/LoRE_SD/LoRE-SD/src')
-# sys.path.append('/DIRECTORY_TO_REPO/LoRE_SD/LoRE-SD')
 
 from lore_sd.optimisation import contrasts
 from lore_sd.mrtrix_io.io import load_mrtrix, save_mrtrix
@@ -36,11 +32,12 @@ def main():
     extra_ax_contrast = contrasts.get_contrast(fractions, ad_range, rd_range, contrasts.extra_axonal_contrast, True, 10)
     free_water_contrast = contrasts.get_contrast(fractions, ad_range, rd_range, contrasts.free_water_contrast)
 
+
     rfa = np.sum(contrasts.fa_map(ad_range, rd_range) * fractions, axis=(-1,-2))
 
     save_mrtrix(os.path.join(args.output_dir, 'intra_axonal_contrast.mif'), Image(intra_ax_contrast, vox=vox, comments=['Intra-axonal contrast']))
     save_mrtrix(os.path.join(args.output_dir, 'extra_axonal_contrast.mif'), Image(extra_ax_contrast, vox=vox, comments=['Extra-axonal contrast']))
     save_mrtrix(os.path.join(args.output_dir, 'free_water_contrast.mif'), Image(free_water_contrast, vox=vox, comments=['Free water contrast']))
-    save_mrtrix(os.path.join(args.output_dir, 'rfa.mif'), Image(fa, vox=vox, comments=['Response Function Anisotropy']))
+    save_mrtrix(os.path.join(args.output_dir, 'rfa.mif'), Image(rfa, vox=vox, comments=['FA']))
 if __name__ == '__main__':
     main()
