@@ -170,30 +170,6 @@ def decompose_voxel(voxel, Da, Dr, grad, lmax, reg, Q, obj_fun, jac):
     return {'odf': odf, 'response': response, 'gaussian_fractions': np.squeeze(fs.reshape((len(Da), len(Dr)))),
             'init_odf': init[:sh.n4l(lmax)], 'init_fs': init[sh.n4l(lmax):].reshape((len(Da), len(Dr)))}
 
-
-def calculate_normalised_l2_weights(S, gaussians, fs_mask):
-    """
-    Calculate normalized L2-norm based weights for Gaussian fractions.
-
-    This function computes weights for Gaussian fractions based on the L2 norm of the difference between the signal S and
-    the scaled Gaussians. The weights are normalised to sum up to 1. Fractions not included in the fs_mask are set to 0 weight.
-
-    Parameters:
-    - S (numpy.ndarray): The signal from diffusion MRI data for a single voxel.
-    - gaussians (numpy.ndarray): Gaussian distributions representing the response functions for different Gaussian fractions.
-    - fs_mask (numpy.ndarray): A boolean mask indicating which Gaussian fractions should be considered for weighting.
-
-    Returns:
-    numpy.ndarray: Normalised weights for each Gaussian fraction based on the L2 norm of the difference between S and the Gaussians.
-    """
-    scale_factor = S[0, 0] / gaussians[0, 0, 0]  # Calculate scale factor based on the first element of S and gaussians
-    l2_dists = np.linalg.norm(S[..., 0] - scale_factor * gaussians[..., 0], ord=2, axis=-1)  # Compute L2 norm of the difference
-    weights = np.exp(-1e-3 * l2_dists)  # CalculIDate weights using exponential decay based on L2 distances
-    weights = np.ones_like(l2_dists)
-    weights[~fs_mask] = 0  # Set weights to 0 for fractions not included in fs_mask
-    return weights / weights.sum()  # Normalize weights to sum up to 1 and return
-
-
 def get_init_and_bounds_from_csd(lmax, Da, Dr, scaled_gaussians, S, constraint_funs):
     """
     Initialise optimisation parameters and bounds for Constrained Spherical Deconvolution (CSD).
@@ -221,7 +197,9 @@ def get_init_and_bounds_from_csd(lmax, Da, Dr, scaled_gaussians, S, constraint_f
 
     # Calculate initial fs using normalized L2 weights
     non_zero_fs = np.outer(Da, np.ones(len(Dr))) >= np.outer(np.ones(len(Da)), Dr)
-    init_fs = calculate_normalised_l2_weights(S, scaled_gaussians, non_zero_fs.flatten())
+    init_fs = np.ones_like(non_zero_fs, dtype=float)
+    init_fs[~non_zero_fs] = 0
+    init_fs /= init_fs.sum()
 
     # Prepare initial ODF and response function for constrained spherical deconvolution (CSD)
     init_odf = np.zeros(sh.n4l(lmax))

@@ -5,8 +5,8 @@ import argparse
 import numpy as np
 import sys
 
-sys.path.append('/home/sleyse4/repos/LoRE_SD/LoRE-SD/src')
-sys.path.append('/home/sleyse4/repos/LoRE_SD/LoRE-SD')
+sys.path.append('/DIRECTORY_TO_REPO/LoRE_SD/LoRE-SD/src')
+sys.path.append('/DIRECTORY_TO_REPO/LoRE_SD/LoRE-SD')
 
 from mrtrix_io.io import load_mrtrix, save_mrtrix
 from mrtrix_io.io.image import Image
