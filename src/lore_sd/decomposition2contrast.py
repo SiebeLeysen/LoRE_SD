@@ -3,12 +3,12 @@ import numpy as np
 import os
 import sys
 
-sys.path.append('/DIRECTORY_TO_REPO/LoRE_SD/LoRE-SD/src')
-sys.path.append('/DIRECTORY_TO_REPO/LoRE_SD/LoRE-SD')
+# sys.path.append('/DIRECTORY_TO_REPO/LoRE_SD/LoRE-SD/src')
+# sys.path.append('/DIRECTORY_TO_REPO/LoRE_SD/LoRE-SD')
 
-from src import contrasts
-from mrtrix_io.io import load_mrtrix, save_mrtrix
-from mrtrix_io.io.image import Image
+from lore_sd.optimisation import contrasts
+from lore_sd.mrtrix_io.io import load_mrtrix, save_mrtrix
+from lore_sd.mrtrix_io.io.image import Image
 
 def main():
     parser = argparse.ArgumentParser(description='Derive the intra-axonal, extra-axonal and free water contrast '

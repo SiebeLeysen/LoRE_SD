@@ -6,3 +6,5 @@ __pycache__/
 *.dylib
 *.egg-info/
 .env
+.vscode
+venv/

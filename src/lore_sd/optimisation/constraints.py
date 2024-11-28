@@ -1,6 +1,6 @@
 import numpy as np
 
-from utils import SphericalHarmonics as sh
+from lore_sd.utils import SphericalHarmonics as sh
 
 def non_negative_odf(Q):
     """

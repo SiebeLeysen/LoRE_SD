@@ -1,5 +1,5 @@
 import numpy as np
-from utils.SphericalHarmonics import sphconv, modshbasis
+from lore_sd.utils.SphericalHarmonics import sphconv, modshbasis
 
 
 

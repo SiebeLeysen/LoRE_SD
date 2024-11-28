@@ -6,10 +6,10 @@ from scipy.optimize import minimize
 import numpy as np
 import time
 
-from utils import SphericalHarmonics as sh
-from optimisation import objective_functions
-from optimisation import constraints
-from utils import io_utils, math_utils
+from lore_sd.utils import SphericalHarmonics as sh
+from lore_sd.optimisation import objective_functions
+from lore_sd.optimisation import constraints
+from lore_sd.utils import io_utils, math_utils
 
 import subprocess
 import tqdm
@@ -91,7 +91,7 @@ def get_signal_decomposition(dwi, mask, grad, Da, Dr, reg, Q=None, lmax=8, cores
     # Print execution time
     print(f'Execution time: {time.strftime("%Hh %Mm %Ss", time.gmtime(time.time() - start_time))}')
     return {'odf': odfs, 'response': responses, 'gaussian_fractions': gaussian_fractions, 
-            'reconstructed': reconstructed, 'rmse': rmse, 'init_odf': init_odfs, 'init_fs': init_fs}
+            'reconstructed': reconstructed, 'rmse': rmse}
 
 
 def get_transformation_matrix(num_dirs, lmax):
@@ -198,8 +198,11 @@ def get_init_and_bounds_from_csd(lmax, Da, Dr, scaled_gaussians, S, constraint_f
     # Calculate initial fs using normalized L2 weights
     non_zero_fs = np.outer(Da, np.ones(len(Dr))) >= np.outer(np.ones(len(Da)), Dr)
     init_fs = np.ones_like(non_zero_fs, dtype=float)
+    # Set initial guess for Gaussian fractions to zero where the condition a >= r is not met
     init_fs[~non_zero_fs] = 0
     init_fs /= init_fs.sum()
+    # Flatten the initial guess for Gaussian fractions into a 1D array for optimization
+    init_fs = init_fs.flatten()
 
     # Prepare initial ODF and response function for constrained spherical deconvolution (CSD)
     init_odf = np.zeros(sh.n4l(lmax))

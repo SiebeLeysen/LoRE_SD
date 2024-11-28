@@ -4,15 +4,15 @@ import os
 import sys
 import subprocess
 
-sys.path.append('/home/sleyse4/repos/LoRE_SD/LoRE-SD/src')
-sys.path.append('/home/sleyse4/repos/LoRE_SD/LoRE-SD')
+# sys.path.append('/home/sleyse4/repos/LoRE_SD/LoRE-SD/src')
+# sys.path.append('/home/sleyse4/repos/LoRE_SD/LoRE-SD')
 
-from src import contrasts
-from src.optimisation import optimise
-from src.utils import SphericalHarmonics as sh
+from lore_sd.optimisation import contrasts
+from lore_sd.optimisation import optimise
+from lore_sd.utils import SphericalHarmonics as sh
 
-from mrtrix_io.io import load_mrtrix, save_mrtrix
-from mrtrix_io.io.image import Image
+from lore_sd.mrtrix_io.io import load_mrtrix, save_mrtrix
+from lore_sd.mrtrix_io.io.image import Image
 
 def handle_input(args):
     """
@@ -129,9 +129,6 @@ def main():
     grad = input_args.grad
     grad[:, -1] = np.round(grad[:, -1], -2)
 
-    print(f'Regularisation: {args.reg}')
-    print(f'Grid size: {len(ad_list)} x {len(rd_list)}')
-
     out = optimise.get_signal_decomposition(dwi, mask, grad, ad_list, rd_list, args.reg, Q=Q, cores=cores)
 
     vox = load_mrtrix(args.input).vox
@@ -141,9 +138,7 @@ def main():
         'response.mif': out['response'],
         'gaussian_fractions.mif': out['gaussian_fractions'],
         'reconstructed.mif': out['reconstructed'],
-        'rmse.mif': out['rmse'],
-        'init_odf.mif': out['init_odf'],
-        'init_fs.mif': out['init_fs'],
+        'rmse.mif': out['rmse']
     }
 
     save_outputs(args, save_dict, vox, grad)

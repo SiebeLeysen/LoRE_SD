@@ -5,14 +5,14 @@ import argparse
 import numpy as np
 import sys
 
-sys.path.append('/DIRECTORY_TO_REPO/LoRE_SD/LoRE-SD/src')
-sys.path.append('/DIRECTORY_TO_REPO/LoRE_SD/LoRE-SD')
+# sys.path.append('/DIRECTORY_TO_REPO/LoRE_SD/LoRE-SD/src')
+# sys.path.append('/DIRECTORY_TO_REPO/LoRE_SD/LoRE-SD')
 
-from mrtrix_io.io import load_mrtrix, save_mrtrix
-from mrtrix_io.io.image import Image
-from src.utils import SphericalHarmonics as sh
+from lore_sd.mrtrix_io.io import load_mrtrix, save_mrtrix
+from lore_sd.mrtrix_io.io.image import Image
+from lore_sd.utils import SphericalHarmonics as sh
 
-if __name__ == '__main__':
+def main():
     parser = argparse.ArgumentParser(description='Calculate the angular correlation coefficient between two ODFs.')
     parser.add_argument('odf1', type=str, help='The first ODF file.')
     parser.add_argument('odf2', type=str, help='The second ODF file.')
@@ -34,3 +34,6 @@ if __name__ == '__main__':
     save_mrtrix(args.output, Image(angular_correlation, vox=data1.vox,
                                    comments=[f'Angular correlation coefficient between '
                                              f'{args.odf1.split("/")[-1]} and {args.odf2.split("/")[-1]}']))
+
+if __name__ == '__main__':
+    main()

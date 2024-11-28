@@ -1,7 +1,5 @@
 import numpy as np
 
-import numpy as np
-
 def normalise_0_1(vals):
     return (vals - np.min(vals)) / (np.max(vals) - np.min(vals))
 
