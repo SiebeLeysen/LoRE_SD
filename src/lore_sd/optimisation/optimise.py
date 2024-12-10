@@ -67,22 +67,18 @@ def get_signal_decomposition(dwi, mask, grad, Da, Dr, reg, Q=None, lmax=8, cores
 
     # Initialize arrays for ODFs, responses, and fiber fractions
     odfs, responses, fs, init_odfs, init_fs = map(np.zeros,
-                              [(mask_len, sh.n4l(lmax)), (mask_len, M, lmax // 2 + 1), (mask_len, len(Da), len(Dr)),
-                               (mask_len, sh.n4l(lmax)), (mask_len, len(Da), len(Dr))])
+                              [(mask_len, sh.n4l(lmax)), (mask_len, M, lmax // 2 + 1), (mask_len, len(Da), len(Dr))])
     for i, result in enumerate(results):
         odfs[i], responses[i], fs[i] = result['odf'], result['response'], result['gaussian_fractions']
-        init_odfs[i], init_fs[i] = result['init_odf'], result['init_fs']
 
     # Simplified version of creating output arrays with the correct shape
     shapes = [
         mask.shape + (sh.n4l(lmax),),
         mask.shape + (M, lmax // 2 + 1),
         mask.shape + (len(Da), len(Dr)),
-        mask.shape + (sh.n4l(lmax),),
-        mask.shape + (len(Da), len(Dr))
     ]
 
-    odfs, responses, gaussian_fractions, init_odfs, init_fs = [math_utils.create_output_array(data, mask, shape) for data, shape in zip((odfs, responses, fs, init_odfs, init_fs), shapes)]
+    odfs, responses, gaussian_fractions = [math_utils.create_output_array(data, mask, shape) for data, shape in zip((odfs, responses, fs), shapes)]
 
     reconstructed = sh.calcdwi(sh.sphconv(responses, odfs), grad)
     rmse = np.linalg.norm(reconstructed - dwi, axis=-1) / np.sqrt(dwi.shape[-1])
