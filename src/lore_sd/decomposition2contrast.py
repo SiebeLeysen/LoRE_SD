@@ -33,7 +33,7 @@ def main():
     free_water_contrast = contrasts.get_contrast(fractions, ad_range, rd_range, contrasts.free_water_contrast)
 
 
-    rfa = np.sum(contrasts.fa_map(ad_range, rd_range) * fractions, axis=(-1,-2))
+    rfa = np.sum(contrasts.rfa_map(ad_range, rd_range) * fractions, axis=(-1,-2))
 
     save_mrtrix(os.path.join(args.output_dir, 'intra_axonal_contrast.mif'), Image(intra_ax_contrast, vox=vox, comments=['Intra-axonal contrast']))
     save_mrtrix(os.path.join(args.output_dir, 'extra_axonal_contrast.mif'), Image(extra_ax_contrast, vox=vox, comments=['Extra-axonal contrast']))
